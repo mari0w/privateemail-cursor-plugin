@@ -1,0 +1,43 @@
+{
+  "name": "privateemail",
+  "displayName": "Private Email",
+  "version": "1.0.0",
+  "description": "Read and send Namecheap Private Email (mail.privateemail.com) via IMAP/SMTP. Search inbox, fetch messages, send and reply.",
+  "author": {
+    "name": "Enoch Z",
+    "email": "enochzzg@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "email",
+    "private-email",
+    "namecheap",
+    "imap",
+    "smtp",
+    "inbox"
+  ],
+  "logo": "assets/logo.svg",
+  "homepage": "https://github.com/mari0w/privateemail-cursor-plugin",
+  "repository": "https://github.com/mari0w/privateemail-cursor-plugin",
+  "variables": {
+    "type": "object",
+    "properties": {
+      "PRIVATEEMAIL_USER": {
+        "type": "string",
+        "title": "Email address",
+        "description": "Full Private Email address, e.g. you@yourdomain.com"
+      },
+      "PRIVATEEMAIL_PASS": {
+        "type": "string",
+        "title": "Mailbox password",
+        "description": "Private Email mailbox password (not your Namecheap account password)"
+      },
+      "PRIVATEEMAIL_FROM": {
+        "type": "string",
+        "title": "From address (optional)",
+        "description": "Defaults to the email address above"
+      }
+    },
+    "required": ["PRIVATEEMAIL_USER", "PRIVATEEMAIL_PASS"]
+  }
+}

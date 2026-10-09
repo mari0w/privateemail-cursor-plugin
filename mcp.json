@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "privateemail": {
+      "command": "bash",
+      "args": ["${CURSOR_PLUGIN_ROOT}/scripts/run-mcp.sh"],
+      "env": {
+        "PRIVATEEMAIL_USER": "${PRIVATEEMAIL_USER}",
+        "PRIVATEEMAIL_PASS": "${PRIVATEEMAIL_PASS}",
+        "PRIVATEEMAIL_FROM": "${PRIVATEEMAIL_FROM}",
+        "PRIVATEEMAIL_HOST": "mail.privateemail.com",
+        "PRIVATEEMAIL_IMAP_PORT": "993",
+        "PRIVATEEMAIL_SMTP_PORT": "465"
+      }
+    }
+  }
+}

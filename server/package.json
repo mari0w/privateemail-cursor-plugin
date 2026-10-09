@@ -1,0 +1,21 @@
+{
+  "name": "privateemail-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Namecheap Private Email (IMAP/SMTP)",
+  "main": "./index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "imapflow": "^2.3.0",
+    "mailparser": "^3.9.37",
+    "nodemailer": "^10.0.16",
+    "zod": "^4.6.5"
+  },
+  "type": "module",
+  "bin": {}
+}
