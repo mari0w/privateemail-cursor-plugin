@@ -6,6 +6,7 @@ import { ImapFlow } from "imapflow";
 import nodemailer from "nodemailer";
 import { simpleParser } from "mailparser";
 import { loadAccounts, selectAccount, requireCreds, toAccountList, replyRecipients } from "./accounts.js";
+import { resolveProxyUrl } from "./proxy.js";
 
 const HOST = process.env.PRIVATEEMAIL_HOST || "mail.privateemail.com";
 const IMAP_PORT = Number(process.env.PRIVATEEMAIL_IMAP_PORT || 993);
@@ -19,6 +20,7 @@ async function withImap(account, fn) {
     port: IMAP_PORT,
     secure: true,
     auth: { user: account.user, pass: account.pass },
+    proxy: resolveProxyUrl(),
     logger: false,
   });
   await client.connect();
@@ -40,6 +42,7 @@ function smtpTransport(account) {
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
     auth: { user: account.user, pass: account.pass },
+    proxy: resolveProxyUrl(),
   });
 }
 
@@ -51,7 +54,7 @@ function textResult(obj) {
 
 const server = new McpServer({
   name: "privateemail",
-  version: "1.1.0",
+  version: "1.1.1",
 });
 
 server.tool(
