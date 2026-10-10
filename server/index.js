@@ -5,29 +5,20 @@ import { z } from "zod";
 import { ImapFlow } from "imapflow";
 import nodemailer from "nodemailer";
 import { simpleParser } from "mailparser";
+import { loadAccounts, selectAccount, requireCreds, toAccountList, replyRecipients } from "./accounts.js";
 
 const HOST = process.env.PRIVATEEMAIL_HOST || "mail.privateemail.com";
 const IMAP_PORT = Number(process.env.PRIVATEEMAIL_IMAP_PORT || 993);
 const SMTP_PORT = Number(process.env.PRIVATEEMAIL_SMTP_PORT || 465);
-const USER = process.env.PRIVATEEMAIL_USER || process.env.EMAIL_USER || "";
-const PASS = process.env.PRIVATEEMAIL_PASS || process.env.EMAIL_PASS || "";
-const FROM = process.env.PRIVATEEMAIL_FROM || USER;
+const ACCOUNTS = loadAccounts(process.env);
 
-function requireCreds() {
-  if (!USER || !PASS) {
-    throw new Error(
-      "Missing PRIVATEEMAIL_USER / PRIVATEEMAIL_PASS. Set them in the plugin configure / MCP env."
-    );
-  }
-}
-
-async function withImap(fn) {
-  requireCreds();
+async function withImap(account, fn) {
+  requireCreds(account);
   const client = new ImapFlow({
     host: HOST,
     port: IMAP_PORT,
     secure: true,
-    auth: { user: USER, pass: PASS },
+    auth: { user: account.user, pass: account.pass },
     logger: false,
   });
   await client.connect();
@@ -37,18 +28,18 @@ async function withImap(fn) {
     try {
       await client.logout();
     } catch {
-      /* ignore */
+      // Ignore logout errors.
     }
   }
 }
 
-function smtpTransport() {
-  requireCreds();
+function smtpTransport(account) {
+  requireCreds(account);
   return nodemailer.createTransport({
     host: HOST,
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
-    auth: { user: USER, pass: PASS },
+    auth: { user: account.user, pass: account.pass },
   });
 }
 
@@ -60,30 +51,39 @@ function textResult(obj) {
 
 const server = new McpServer({
   name: "privateemail",
-  version: "1.0.0",
+  version: "1.1.0",
 });
+
+server.tool(
+  "list_accounts",
+  "List account login addresses and From addresses. Never return passwords.",
+  {},
+  async () => textResult({ accounts: toAccountList(ACCOUNTS) })
+);
 
 server.tool(
   "account_info",
   "Show configured Private Email account host/ports/user (never the password).",
-  {},
-  async () =>
-    textResult({
+  { account: z.string().optional().describe("Login address. Omit for the default account.") },
+  async ({ account }) => {
+    const selected = selectAccount(ACCOUNTS, account);
+    return textResult({
       host: HOST,
       imapPort: IMAP_PORT,
       smtpPort: SMTP_PORT,
-      user: USER ? USER.replace(/(^.).*(@.*$)/, "$1***$2") : null,
-      from: FROM ? FROM.replace(/(^.).*(@.*$)/, "$1***$2") : null,
-      configured: Boolean(USER && PASS),
-    })
+      user: selected.user ? selected.user.replace(/(^.).*(@.*$)/, "$1***$2") : null,
+      from: selected.from ? selected.from.replace(/(^.).*(@.*$)/, "$1***$2") : null,
+      configured: Boolean(selected.user && selected.pass),
+    });
+  }
 );
 
 server.tool(
   "list_folders",
   "List IMAP mailboxes/folders for the Private Email account.",
-  {},
-  async () => {
-    const folders = await withImap(async (client) => {
+  { account: z.string().optional().describe("Login address. Omit for the default account.") },
+  async ({ account }) => {
+    const folders = await withImap(selectAccount(ACCOUNTS, account), async (client) => {
       const list = await client.list();
       return list.map((box) => ({
         path: box.path,
@@ -100,12 +100,13 @@ server.tool(
   "list_messages",
   "List recent messages in a folder (newest first).",
   {
+    account: z.string().optional().describe("Login address. Omit for the default account."),
     folder: z.string().default("INBOX").describe("IMAP folder path"),
     limit: z.number().int().min(1).max(100).default(20),
     unreadOnly: z.boolean().default(false),
   },
-  async ({ folder, limit, unreadOnly }) => {
-    const messages = await withImap(async (client) => {
+  async ({ account, folder, limit, unreadOnly }) => {
+    const messages = await withImap(selectAccount(ACCOUNTS, account), async (client) => {
       const lock = await client.getMailboxLock(folder);
       try {
         const query = unreadOnly ? { seen: false } : { all: true };
@@ -145,12 +146,13 @@ server.tool(
   "search_messages",
   "Search messages by text in a folder (subject/from/body depending on server support).",
   {
+    account: z.string().optional().describe("Login address. Omit for the default account."),
     folder: z.string().default("INBOX"),
     query: z.string().describe("Search text"),
     limit: z.number().int().min(1).max(50).default(20),
   },
-  async ({ folder, query, limit }) => {
-    const messages = await withImap(async (client) => {
+  async ({ account, folder, query, limit }) => {
+    const messages = await withImap(selectAccount(ACCOUNTS, account), async (client) => {
       const lock = await client.getMailboxLock(folder);
       try {
         const uids = await client.search({ text: query }, { uid: true });
@@ -186,12 +188,13 @@ server.tool(
   "get_message",
   "Fetch full message content by UID.",
   {
+    account: z.string().optional().describe("Login address. Omit for the default account."),
     folder: z.string().default("INBOX"),
     uid: z.number().int().describe("IMAP UID"),
     markSeen: z.boolean().default(false),
   },
-  async ({ folder, uid, markSeen }) => {
-    const result = await withImap(async (client) => {
+  async ({ account, folder, uid, markSeen }) => {
+    const result = await withImap(selectAccount(ACCOUNTS, account), async (client) => {
       const lock = await client.getMailboxLock(folder);
       try {
         const downloaded = await client.download(uid, undefined, { uid: true });
@@ -226,6 +229,7 @@ server.tool(
   "send_email",
   "Send an email via Private Email SMTP.",
   {
+    account: z.string().optional().describe("Login address. Omit for the default account."),
     to: z.string().describe("Recipient email(s), comma-separated"),
     subject: z.string(),
     text: z.string().optional(),
@@ -234,13 +238,14 @@ server.tool(
     bcc: z.string().optional(),
     replyTo: z.string().optional(),
   },
-  async ({ to, subject, text, html, cc, bcc, replyTo }) => {
+  async ({ account, to, subject, text, html, cc, bcc, replyTo }) => {
+    const selected = selectAccount(ACCOUNTS, account);
     if (!text && !html) {
       throw new Error("Provide text and/or html body");
     }
-    const transport = smtpTransport();
+    const transport = smtpTransport(selected);
     const info = await transport.sendMail({
-      from: FROM,
+      from: selected.from,
       to,
       cc,
       bcc,
@@ -262,17 +267,19 @@ server.tool(
   "reply_email",
   "Reply to a message by UID (sets In-Reply-To / References when available).",
   {
+    account: z.string().optional().describe("Login address. Omit for the default account."),
     folder: z.string().default("INBOX"),
     uid: z.number().int(),
     text: z.string().optional(),
     html: z.string().optional(),
     replyAll: z.boolean().default(false),
   },
-  async ({ folder, uid, text, html, replyAll }) => {
+  async ({ account, folder, uid, text, html, replyAll }) => {
+    const selected = selectAccount(ACCOUNTS, account);
     if (!text && !html) {
       throw new Error("Provide text and/or html body");
     }
-    const meta = await withImap(async (client) => {
+    const meta = await withImap(selected, async (client) => {
       const lock = await client.getMailboxLock(folder);
       try {
         const downloaded = await client.download(uid, undefined, { uid: true });
@@ -294,17 +301,7 @@ server.tool(
       ? meta.subject
       : `Re: ${meta.subject || ""}`;
 
-    let to = meta.from;
-    let cc;
-    if (replyAll) {
-      const all = new Set(
-        [...meta.to, ...meta.cc].filter(
-          (a) => a && a.toLowerCase() !== USER.toLowerCase()
-        )
-      );
-      if (meta.from) all.add(meta.from);
-      to = [...all].join(", ");
-    }
+    const { to, cc } = replyRecipients(meta, selected, replyAll);
 
     const references = [
       ...(Array.isArray(meta.references) ? meta.references : meta.references ? [meta.references] : []),
@@ -313,9 +310,9 @@ server.tool(
       .filter(Boolean)
       .join(" ");
 
-    const transport = smtpTransport();
+    const transport = smtpTransport(selected);
     const info = await transport.sendMail({
-      from: FROM,
+      from: selected.from,
       to,
       cc,
       subject,
@@ -337,13 +334,14 @@ server.tool(
   "mark_message",
   "Mark a message seen/unseen or flagged/unflagged.",
   {
+    account: z.string().optional().describe("Login address. Omit for the default account."),
     folder: z.string().default("INBOX"),
     uid: z.number().int(),
     seen: z.boolean().optional(),
     flagged: z.boolean().optional(),
   },
-  async ({ folder, uid, seen, flagged }) => {
-    await withImap(async (client) => {
+  async ({ account, folder, uid, seen, flagged }) => {
+    await withImap(selectAccount(ACCOUNTS, account), async (client) => {
       const lock = await client.getMailboxLock(folder);
       try {
         if (seen === true) await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });

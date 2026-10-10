@@ -1,7 +1,7 @@
 {
   "name": "privateemail",
   "displayName": "Private Email",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Read and send Namecheap Private Email (mail.privateemail.com) via IMAP/SMTP. Search inbox, fetch messages, send and reply.",
   "author": {
     "name": "Enoch Z",
@@ -35,7 +35,67 @@
       "PRIVATEEMAIL_FROM": {
         "type": "string",
         "title": "From address (optional)",
-        "description": "Defaults to the email address above"
+        "description": "Defaults to the default account login address."
+      },
+      "PRIVATEEMAIL_USER_2": {
+        "type": "string",
+        "title": "Account 2 email address (optional)",
+        "description": "Account 2 login address."
+      },
+      "PRIVATEEMAIL_PASS_2": {
+        "type": "string",
+        "title": "Account 2 mailbox password (optional)",
+        "description": "Account 2 mailbox password."
+      },
+      "PRIVATEEMAIL_FROM_2": {
+        "type": "string",
+        "title": "Account 2 From address (optional)",
+        "description": "Defaults to the account 2 login address."
+      },
+      "PRIVATEEMAIL_USER_3": {
+        "type": "string",
+        "title": "Account 3 email address (optional)",
+        "description": "Account 3 login address."
+      },
+      "PRIVATEEMAIL_PASS_3": {
+        "type": "string",
+        "title": "Account 3 mailbox password (optional)",
+        "description": "Account 3 mailbox password."
+      },
+      "PRIVATEEMAIL_FROM_3": {
+        "type": "string",
+        "title": "Account 3 From address (optional)",
+        "description": "Defaults to the account 3 login address."
+      },
+      "PRIVATEEMAIL_USER_4": {
+        "type": "string",
+        "title": "Account 4 email address (optional)",
+        "description": "Account 4 login address."
+      },
+      "PRIVATEEMAIL_PASS_4": {
+        "type": "string",
+        "title": "Account 4 mailbox password (optional)",
+        "description": "Account 4 mailbox password."
+      },
+      "PRIVATEEMAIL_FROM_4": {
+        "type": "string",
+        "title": "Account 4 From address (optional)",
+        "description": "Defaults to the account 4 login address."
+      },
+      "PRIVATEEMAIL_USER_5": {
+        "type": "string",
+        "title": "Account 5 email address (optional)",
+        "description": "Account 5 login address."
+      },
+      "PRIVATEEMAIL_PASS_5": {
+        "type": "string",
+        "title": "Account 5 mailbox password (optional)",
+        "description": "Account 5 mailbox password."
+      },
+      "PRIVATEEMAIL_FROM_5": {
+        "type": "string",
+        "title": "Account 5 From address (optional)",
+        "description": "Defaults to the account 5 login address."
       }
     },
     "required": ["PRIVATEEMAIL_USER", "PRIVATEEMAIL_PASS"]
