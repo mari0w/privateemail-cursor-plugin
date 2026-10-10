@@ -13,15 +13,19 @@ description: >-
 - Host: `mail.privateemail.com`
 - IMAP: 993 (TLS)
 - SMTP: 465 (TLS)
-- Credentials come from plugin variables `PRIVATEEMAIL_USER` / `PRIVATEEMAIL_PASS`
+- Default account credentials come from `PRIVATEEMAIL_USER` and `PRIVATEEMAIL_PASS`.
+- Extra account credentials use the `_2` to `_5` suffixes.
+- Each account has an optional From address in `PRIVATEEMAIL_FROM` with the same suffix.
 
 ## Workflow
 
-1. Call `account_info` once to confirm the connector is configured (password is never returned).
-2. Prefer `list_folders` then `list_messages` or `search_messages` before `get_message`.
-3. For replies, use `reply_email` with the message UID so threading headers are set.
-4. Never paste the mailbox password into chat. If auth fails, ask the user to update plugin Configure values.
-5. Do not use this connector for Gmail/Outlook OAuth inboxes; those have their own plugins.
+1. Call `list_accounts` when more than one account may exist.
+2. Pass `account` with the login address to select a non-default account. Omit `account` for the default account.
+3. Call `account_info` once for the selected account to confirm it is configured. Passwords are never returned.
+4. Use `list_folders` before `list_messages` or `search_messages`. Use these tools before `get_message`.
+5. For replies, use `reply_email` with the message UID. This sets the threading headers.
+6. Never paste the mailbox password into chat. If authentication fails, ask the user to update plugin Configure values.
+7. Use the applicable plugins for Gmail and Outlook accounts.
 
 ## Safety
 
