@@ -4,7 +4,7 @@
   "description": "MCP server for Namecheap Private Email (IMAP/SMTP)",
   "main": "./index.js",
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
