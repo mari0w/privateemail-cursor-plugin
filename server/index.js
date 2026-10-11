@@ -6,7 +6,7 @@ import { ImapFlow } from "imapflow";
 import nodemailer from "nodemailer";
 import { simpleParser } from "mailparser";
 import { loadAccounts, selectAccount, requireCreds, toAccountList, replyRecipients } from "./accounts.js";
-import { resolveProxyUrl } from "./proxy.js";
+import { connectImap, resolveProxyUrl, sendSmtp } from "./proxy.js";
 
 const HOST = process.env.PRIVATEEMAIL_HOST || "mail.privateemail.com";
 const IMAP_PORT = Number(process.env.PRIVATEEMAIL_IMAP_PORT || 993);
@@ -15,15 +15,13 @@ const ACCOUNTS = loadAccounts(process.env);
 
 async function withImap(account, fn) {
   requireCreds(account);
-  const client = new ImapFlow({
+  const client = await connectImap((options) => new ImapFlow(options), {
     host: HOST,
     port: IMAP_PORT,
     secure: true,
     auth: { user: account.user, pass: account.pass },
-    proxy: resolveProxyUrl(),
     logger: false,
-  });
-  await client.connect();
+  }, resolveProxyUrl());
   try {
     return await fn(client);
   } finally {
@@ -35,15 +33,14 @@ async function withImap(account, fn) {
   }
 }
 
-function smtpTransport(account) {
+function sendMail(account, message) {
   requireCreds(account);
-  return nodemailer.createTransport({
+  return sendSmtp((options) => nodemailer.createTransport(options), {
     host: HOST,
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
     auth: { user: account.user, pass: account.pass },
-    proxy: resolveProxyUrl(),
-  });
+  }, message, resolveProxyUrl());
 }
 
 function textResult(obj) {
@@ -246,8 +243,7 @@ server.tool(
     if (!text && !html) {
       throw new Error("Provide text and/or html body");
     }
-    const transport = smtpTransport(selected);
-    const info = await transport.sendMail({
+    const info = await sendMail(selected, {
       from: selected.from,
       to,
       cc,
@@ -313,8 +309,7 @@ server.tool(
       .filter(Boolean)
       .join(" ");
 
-    const transport = smtpTransport(selected);
-    const info = await transport.sendMail({
+    const info = await sendMail(selected, {
       from: selected.from,
       to,
       cc,
