@@ -3,8 +3,10 @@
 Connect [Namecheap Private Email](https://www.namecheap.com/hosting/email/) to Cursor or Grok Bot.
 The server uses IMAP and SMTP at `mail.privateemail.com`.
 
-The plugin automatically uses the sandbox egress proxy for IMAP and SMTP.
-Users do not set a proxy for Grok Bot.
+The plugin tries the proxy first for IMAP and SMTP.
+If the proxy connection fails, it connects directly.
+After a direct connection succeeds, it uses direct connections for the rest of the process.
+Authentication failures do not trigger fallback, and sending a message is never retried.
 The first nonempty variable sets the proxy: `SAND_EGRESS_TUNNEL_PROXY_ADDR`, `HTTPS_PROXY`, `HTTP_PROXY`, then `ALL_PROXY`.
 Each standard variable also accepts its lowercase form.
 The uppercase form has priority over the lowercase form.
